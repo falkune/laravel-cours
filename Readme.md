@@ -26,7 +26,6 @@ Laravel est livré avec Eloquent, un ORM (Object-Relational Mapping) puissant et
 Laravel offre un système de routage flexible qui permet de définir facilement des points d'entrée pour les différentes actions de l'application. Les routes peuvent être définies de manière claire et intuitive, permettant de mapper les URI aux actions des contrôleurs de manière simple et cohérente.
 
 - Moteur de template Blade
-Moteur de template Blade
 
 - Nombreuses fonctionnalités intégrées
 Laravel est livré avec de nombreuses fonctionnalités intégrées telles que l'authentification, la validation, la gestion des sessions, la mise en cache, etc. Ces fonctionnalités prêtes à l'emploi permettent aux développeurs de se concentrer sur le développement des fonctionnalités métier de leur application plutôt que sur la mise en place de fonctionnalités de base.
@@ -47,7 +46,6 @@ Laravel bénéficie d'une communauté active et engagée de développeurs qui co
 Laravel intègre de nombreux mécanismes de sécurité pour protéger les applications web contre les attaques courantes telles que les injections SQL, les attaques XSS (Cross-Site Scripting), les attaques CSRF (Cross-Site Request Forgery), etc. Par exemple, Laravel utilise par défaut des requêtes préparées pour prévenir les injections SQL et génère automatiquement des jetons CSRF pour protéger contre les attaques CSRF
 
 - Performances optimisées grâce à des fonctionnalités de mise en cache et d'optimisation automatique
-En résumé, l'utilisation de Laravel offre aux développeurs un ensemble d'avantages significatifs, notamment une productivité accrue, un soutien communautaire robuste, une sécurité renforcée et des performances optimisées. Ces avantages font de Laravel un choix populaire pour le développement d'applications web modernes et évolutives.
 
 En résumé, l'utilisation de Laravel offre aux développeurs un ensemble d'avantages significatifs, notamment une productivité accrue, un soutien communautaire robuste, une sécurité renforcée et des performances optimisées. Ces avantages font de Laravel un choix populaire pour le développement d'applications web modernes et évolutives.
 
@@ -390,3 +388,95 @@ Génération automatique : Vous pouvez créer un contrôleur manuellement en cr�
 ```sh
 php artisan make:controller UserController
 ```
+Cette commande va creer un fichier nomé UserContriller.php dans le re dossier ***app/Http/Controllers*** dans ce dernier on va mettre le code suivant:
+```php
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+
+class UserController extends Controller {
+    // cette methode va permettre d'afficher la vue login
+    public function showLoginForm(){
+        return view('login');
+    }
+    // cette methode va permettre d'afficher la vue register
+    public function showRegisterForm(){
+        return view('register');
+    }
+}
+```
+Ensuite on va definir les routes rour afficher un les formulaires de connexion et d'inscription. Dans le fichier ***routes/web.php*** ajouter les lignes suivantes:
+```php
+use App\Http\Controllers\UserController;
+Route::get('/register', [UserController::class, 'showRegisterForm']);
+Route::get('/login', [UserController::class, 'showLoginForm']);
+```
+Ainsi le lien : http://127.0.0.1:8000/register affichera le formulaire de'inscription et celui-ci http://127.0.0.1:8000/login affiche le formulaire de connexion.
+
+Nous allons egalement definir les controllers : HebergementController, ReservationController et HomeController et modifier le fichier web.php pour creer les routes necessaires.
+
+C'est bien d'aaficher les formulaire de connexion et d'inscription mais il serait encore mieux de les faire fonctionner c'est a dire d'enregistrer un nouvel utilisateur et connecter un utilisateur déja inscrit.
+
+### Inscription
+Nous allons ajouter une methode dans le UserController qu'on va nommer ***register*** qui permet de creer un nouvel utilisateur.
+```php
+# placez ces deux ligne au debut du fichier apres la declaration du namespace
+use Illuminate\Support\Facades\Hash;
+use App\Models\User; 
+// methode pour creer un utilisateur
+public function register(Request $request){
+    $utilisateur = User::create([
+        'nom' => $request->input('nom'),
+        'prenom' => $request->input('prenom'),
+        'email' => $request->input('email'),
+        'password' => Hash::make($request->input('password')),
+    ]);
+}
+```
+Puis on va definir la route qui permettra de soumettre le formulaire d'inscription qui aura pour effet l'execution de la methode ***register*** et enregistrer les infos dans la base de données.
+
+### Connexion:
+Nous allons ajouter une methode dans le UserController qu'on va nommer ***login*** qui permet de connecter un utilisateur.
+```php
+use Illuminate\Support\Facades\Auth; # placez cette ligne au debut du fichier apres la declaration du namespace
+public static function login(Request $request){
+    $credentials = $request->validate([
+        'email' => ['required', 'email'],
+        'password' => ['required']
+    ]);
+
+    if (Auth::attempt($credentials)) {
+        $request->session()->regenerate();
+        return redirect()->intended('/');
+    }
+    return back();
+}
+```
+Puis on va definir la route qui permettra de soumettre le formulaire de connexion qui aura pour effet l'execution de la methode ***login*** et connecter l'utilisateur si les infos données sont correcte.
+```php
+Route::post('/login', [UserController::class, 'login']);
+```
+### Création des annonces
+Maintenant mettons en place la fonctionnalité de mise en ligne d'un hebergement. Pour cela il faudra definir dans le controller HebergementController la methode qu'on va nommée ***createHost*** code suivant:
+```php
+public function createAdd(Request $request){
+    $image = $request->file('image');
+    $extension = $image->getClientOriginalExtension();
+    $imageName = time() . '.' . $extension;
+    $image->move(public_path('imgs'), $imageName);
+
+    $add = Hebergement::create([
+        'titre'          =>    $request['titre'],
+        'description'    =>    $request['description'],
+        'localisation'   =>    $request['localisation'],
+        'user_id'        =>    auth()->user()->id,
+        'image'          =>    $imageName
+    ]);
+}
+```
+Définir la route qui permettra de soumettre le formulaire de mise en ligne d'une annonce qui aura pour effet l'execution de la methode ***createHost*** et enregistrer dans la base de données.
+```php
+Route::post('/add', [HebergementController::class, 'createAdd']);
+```
+
+#### Affaire a suivre...
