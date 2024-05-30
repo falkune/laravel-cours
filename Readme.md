@@ -479,4 +479,52 @@ Définir la route qui permettra de soumettre le formulaire de mise en ligne d'un
 Route::post('/add', [HebergementController::class, 'createAdd']);
 ```
 
-#### Affaire a suivre...
+### Affichage des annonce
+Creez un controller nommer HomeController et mettez y le code suivant:
+```php
+class HomeController extends Controller {
+    public function index(){
+        $hosts = Hebergement::all();
+        return view('home', ['hosts' => $hosts]);
+    }
+}
+```
+Modifier le fichier web.php de la maniere suivante :
+```php
+Route::get('/', [HomeController::class, 'index']);
+```
+### Relation entre les tables
+On va ajouter dans nos models les relations qui permettrons de pouvoir facilement gerer l'affichage de des données si elle provienent de plusieurs tables ayant des relations.
+
+modifiez le modele Hebergement de la maniere suivante:
+```php
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+public function user(): BelongsTo {
+    return $this->belongsTo(User::class);
+}
+```
+modifiez le modele Reservation de la maniere suivante:
+```php
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+# Une reservation est faite par un unique utilisateur
+public function user(): BelongsTo {
+    return $this->belongsTo(User::class);
+}
+
+# Une reservation concerne uniquement un hebergement
+public function hebergement(): BelongsTo {
+    return $this->belongsTo(Hebergement::class);
+}
+```
+modifiez le modele User de la maniere suivante:
+```php
+use Illuminate\Database\Eloquent\Relations\HasMany;
+# un utilisateur peut mettre en ligne plusieur hebergements
+public function hebergement(): HasMany {
+    return $this->hasMany(Hebergement::class);
+}
+# un utilisateur peut faire plusieur reservations
+public function reservation(): HasMany {
+    return $this->hasMany(Reservation::class);
+}
+```
